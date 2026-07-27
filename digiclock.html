@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位時鐘 Digital Clock</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Share+Tech+Mono&family=Roboto+Mono:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS 變數定義主題 */
+        :root {
+            /* 預設暗色主題 (Dark Cyber) */
+            --bg-color: #0d1117;
+            --card-bg: rgba(22, 27, 34, 0.85);
+            --modal-bg: rgba(22, 27, 34, 0.95);
+            --text-color: #c9d1d9;
+            --accent-color: #58a6ff;
+            --clock-time-color: #58a6ff;
+            --clock-date-color: #8b949e;
+            --border-color: #30363d;
+            --shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+            --clock-font: 'Orbitron', sans-serif;
+        }
+
+        /* 主題：極簡淺色 (Light Minimal) */
+        [data-theme="light"] {
+            --bg-color: #f4f6f8;
+            --card-bg: rgba(255, 255, 255, 0.9);
+            --modal-bg: rgba(255, 255, 255, 0.98);
+            --text-color: #24292e;
+            --accent-color: #0366d6;
+            --clock-time-color: #1f2328;
+            --clock-date-color: #57606a;
+            --border-color: #e1e4e8;
+            --shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 主題：霓虹綠 (Neon Matrix) */
+        [data-theme="matrix"] {
+            --bg-color: #050b05;
+            --card-bg: rgba(10, 25, 12, 0.85);
+            --modal-bg: rgba(10, 25, 12, 0.95);
+            --text-color: #00ff66;
+            --accent-color: #00ff66;
+            --clock-time-color: #00ff66;
+            --clock-date-color: #00b347;
+            --border-color: #00551e;
+            --shadow: 0 0 25px rgba(0, 255, 102, 0.25);
+        }
+
+        /* 主題：日落復古 (Sunset Vaporware) */
+        [data-theme="sunset"] {
+            --bg-color: #1a0933;
+            --card-bg: rgba(38, 16, 65, 0.85);
+            --modal-bg: rgba(38, 16, 65, 0.95);
+            --text-color: #ff7edb;
+            --accent-color: #ff2a8d;
+            --clock-time-color: #ff9e00;
+            --clock-date-color: #ff7edb;
+            --border-color: #632c8d;
+            --shadow: 0 12px 40px rgba(255, 42, 141, 0.3);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* 頂部控制列（右上方設定按鈕） */
+        .top-bar {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            z-index: 10;
+        }
+
+        .settings-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(10px);
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .settings-btn:hover {
+            transform: rotate(45deg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+
+        .settings-btn svg {
+            width: 24px;
+            height: 24px;
+            fill: currentColor;
+        }
+
+        /* 時鐘卡片 */
+        .clock-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 40px 30px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            text-align: center;
+            position: relative;
+        }
+
+        .clock-title {
+            font-size: 1rem;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--accent-color);
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .clock-date {
+            font-size: 1.25rem;
+            color: var(--clock-date-color);
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        /* 調整：字型顯示加大 */
+        .clock-time {
+            font-family: var(--clock-font);
+            font-size: clamp(3.2rem, 11vw, 6rem);
+            font-weight: 700;
+            color: var(--clock-time-color);
+            line-height: 1.05;
+            letter-spacing: 2px;
+        }
+
+        .secondary-clock {
+            border-style: dashed;
+            padding: 30px 24px;
+        }
+
+        .secondary-clock .clock-time {
+            font-size: clamp(2.5rem, 8vw, 4.5rem);
+        }
+
+        /* 彈出式設定視窗 (Modal) */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(6px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-card {
+            background: var(--modal-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 440px;
+            padding: 28px;
+            box-shadow: var(--shadow);
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .modal-overlay.active .modal-card {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 14px;
+        }
+
+        .modal-header h3 {
+            font-size: 1.2rem;
+            color: var(--text-color);
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+            color: var(--accent-color);
+        }
+
+        .setting-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .setting-group label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            opacity: 0.85;
+        }
+
+        select {
+            background: var(--bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            outline: none;
+            font-family: inherit;
+            cursor: pointer;
+        }
+
+        select:focus {
+            border-color: var(--accent-color);
+        }
+
+        /* Toggle 開關樣式 */
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 26px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--border-color);
+            transition: .3s;
+            border-radius: 26px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-color);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 480px) {
+            .clock-card {
+                padding: 30px 16px;
+            }
+            .clock-time {
+                font-size: clamp(2.8rem, 13vw, 4.5rem);
+            }
+            .top-bar {
+                top: 16px;
+                right: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 右上方設定按鈕 -->
+    <div class="top-bar">
+        <button class="settings-btn" id="openModalBtn" aria-label="設定">
+            <svg viewBox="0 0 24 24">
+                <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+            </svg>
+        </button>
+    </div>
+
+    <!-- 主內容區 -->
+    <div class="container">
+        <!-- 主時鐘（電腦時區） -->
+        <div class="clock-card" id="primaryClock">
+            <div class="clock-title" id="localTzName">本地時區</div>
+            <div class="clock-date" id="localDate">----/--/-- (--)</div>
+            <div class="clock-time" id="localTime">00:00</div>
+        </div>
+
+        <!-- 第二時區時鐘 -->
+        <div class="clock-card secondary-clock hidden" id="secondaryClock">
+            <div class="clock-title" id="secTzName">第二時區</div>
+            <div class="clock-date" id="secDate">----/--/-- (--)</div>
+            <div class="clock-time" id="secTime">00:00</div>
+        </div>
+    </div>
+
+    <!-- 彈出式設定視窗 (Modal) -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>時鐘設定</h3>
+                <button class="close-btn" id="closeModalBtn">&times;</button>
+            </div>
+
+            <!-- 開關：顯示秒數 -->
+            <div class="setting-row">
+                <label for="showSecondsToggle">顯示秒數</label>
+                <label class="switch">
+                    <input type="checkbox" id="showSecondsToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- 主題選擇 -->
+            <div class="setting-group">
+                <label for="themeSelect">色彩主題</label>
+                <select id="themeSelect">
+                    <option value="dark">暗色極客 (Dark)</option>
+                    <option value="light">極簡純白 (Light)</option>
+                    <option value="matrix">霓虹黑客 (Matrix)</option>
+                    <option value="sunset">日落復古 (Sunset)</option>
+                </select>
+            </div>
+
+            <!-- 字型選擇 -->
+            <div class="setting-group">
+                <label for="fontSelect">數字字型</label>
+                <select id="fontSelect">
+                    <option value="'Orbitron', sans-serif">Orbitron (科技風格)</option>
+                    <option value="'Share Tech Mono', monospace">Share Tech (電子錶風格)</option>
+                    <option value="'Roboto Mono', monospace">Roboto Mono (等線字型)</option>
+                    <option value="'Noto Sans TC', sans-serif">預設無襯線</option>
+                </select>
+            </div>
+
+            <!-- 第二時區選擇 -->
+            <div class="setting-group">
+                <label for="timezoneSelect">第二時區</label>
+                <select id="timezoneSelect">
+                    <option value="none">不顯示</option>
+                    <option value="Asia/Tokyo">東京 (UTC+9)</option>
+                    <option value="Europe/London">倫敦 (UTC+0/+1)</option>
+                    <option value="America/New_York">紐約 (UTC-5/-4)</option>
+                    <option value="America/Los_Angeles">洛杉磯 (UTC-8/-7)</option>
+                    <option value="Europe/Paris">巴黎 (UTC+1/+2)</option>
+                    <option value="Australia/Sydney">雪梨 (UTC+10/+11)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM 元素引用
+        const openModalBtn = document.getElementById('openModalBtn');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const modalOverlay = document.getElementById('modalOverlay');
+
+        const themeSelect = document.getElementById('themeSelect');
+        const fontSelect = document.getElementById('fontSelect');
+        const timezoneSelect = document.getElementById('timezoneSelect');
+        const showSecondsToggle = document.getElementById('showSecondsToggle');
+
+        const localTzName = document.getElementById('localTzName');
+        const localDate = document.getElementById('localDate');
+        const localTime = document.getElementById('localTime');
+
+        const secondaryClock = document.getElementById('secondaryClock');
+        const secTzName = document.getElementById('secTzName');
+        const secDate = document.getElementById('secDate');
+        const secTime = document.getElementById('secTime');
+
+        // 讀取 LocalStorage 或預設值
+        let settings = {
+            theme: localStorage.getItem('clock_theme') || 'dark',
+            font: localStorage.getItem('clock_font') || "'Orbitron', sans-serif",
+            secondaryTz: localStorage.getItem('clock_sec_tz') || 'none',
+            showSeconds: localStorage.getItem('clock_show_seconds') === 'true'
+        };
+
+        // 初始化 UI 設定
+        function initSettings() {
+            themeSelect.value = settings.theme;
+            fontSelect.value = settings.font;
+            timezoneSelect.value = settings.secondaryTz;
+            showSecondsToggle.checked = settings.showSeconds;
+
+            applyTheme(settings.theme);
+            applyFont(settings.font);
+            toggleSecondaryClock(settings.secondaryTz);
+        }
+
+        // 彈出視窗控制
+        openModalBtn.addEventListener('click', () => modalOverlay.classList.add('active'));
+        closeModalBtn.addEventListener('click', () => modalOverlay.classList.remove('active'));
+        modalOverlay.addEventListener('click', (e) => {
+            if (e.target === modalOverlay) modalOverlay.classList.remove('active');
+        });
+
+        // 套用主題
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('clock_theme', theme);
+        }
+
+        // 套用字型
+        function applyFont(font) {
+            document.documentElement.style.setProperty('--clock-font', font);
+            localStorage.setItem('clock_font', font);
+        }
+
+        // 切換第二時區顯示狀態
+        function toggleSecondaryClock(tz) {
+            if (tz === 'none') {
+                secondaryClock.classList.add('hidden');
+            } else {
+                secondaryClock.classList.remove('hidden');
+            }
+            localStorage.setItem('clock_sec_tz', tz);
+        }
+
+        // 時間格式化處理
+        function formatClock(timeZone, showSeconds) {
+            const now = new Date();
+
+            // 日期格式化 (年/月/日 星期)
+            const dateOptions = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                weekday: 'short',
+                timeZone: timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+            const dateStr = new Intl.DateTimeFormat('zh-TW', dateOptions).format(now);
+
+            // 時間格式化 (時/分/秒)
+            const timeOptions = {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false,
+                timeZone: timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone
+            };
+
+            if (showSeconds) {
+                timeOptions.second = '2-digit';
+            }
+
+            let timeParts = new Intl.DateTimeFormat('en-GB', timeOptions).formatToParts(now);
+            let hours = '', minutes = '', seconds = '';
+
+            timeParts.forEach(part => {
+                if (part.type === 'hour') hours = part.value;
+                if (part.type === 'minute') minutes = part.value;
+                if (part.type === 'second') seconds = part.value;
+            });
+
+            // 如果不顯示秒數，加入冒號閃爍效果
+            let timeHtml = '';
+            if (showSeconds) {
+                timeHtml = `${hours}:${minutes}:${seconds}`;
+            } else {
+                const isEvenSecond = now.getSeconds() % 2 === 0;
+                const colonClass = isEvenSecond ? '' : 'style="opacity: 0.2"';
+                timeHtml = `${hours}<span ${colonClass}>:</span>${minutes}`;
+            }
+
+            return { dateStr, timeHtml };
+        }
+
+        // 更新所有時鐘
+        function updateClocks() {
+            const showSec = showSecondsToggle.checked;
+
+            // 1. 本地時鐘
+            const userTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            localTzName.textContent = `本地時間 (${userTz})`;
+            const localData = formatClock(null, showSec);
+            localDate.textContent = localData.dateStr;
+            localTime.innerHTML = localData.timeHtml;
+
+            // 2. 第二時區時鐘
+            const secTz = timezoneSelect.value;
+            if (secTz !== 'none') {
+                secTzName.textContent = timezoneSelect.options[timezoneSelect.selectedIndex].text;
+                const secData = formatClock(secTz, showSec);
+                secDate.textContent = secData.dateStr;
+                secTime.innerHTML = secData.timeHtml;
+            }
+        }
+
+        // 事件監聽
+        themeSelect.addEventListener('change', (e) => applyTheme(e.target.value));
+        fontSelect.addEventListener('change', (e) => applyFont(e.target.value));
+        timezoneSelect.addEventListener('change', (e) => {
+            toggleSecondaryClock(e.target.value);
+            updateClocks();
+        });
+        showSecondsToggle.addEventListener('change', (e) => {
+            localStorage.setItem('clock_show_seconds', e.target.checked);
+            updateClocks();
+        });
+
+        // 初始化與定時器 (每半秒更新一次)
+        initSettings();
+        updateClocks();
+        setInterval(updateClocks, 500);
+    </script>
+</body>
+</html>
