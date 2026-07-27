@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>12 隻慢慢畫出來的貓</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #fff;
+    font-family: Arial, "Noto Sans TC", sans-serif;
+    color: #222;
+  }
+
+  .page {
+    width: min(1200px, 94vw);
+    margin: 0 auto;
+    padding: 32px 0 40px;
+  }
+
+  h1 {
+    margin: 0 0 28px;
+    text-align: center;
+    font-size: clamp(24px, 3vw, 38px);
+    font-weight: 700;
+    letter-spacing: .04em;
+  }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin: -12px 0 26px;
+  }
+
+  .replay-btn {
+    border: 1.5px solid #111;
+    background: #fff;
+    color: #111;
+    border-radius: 999px;
+    padding: 10px 22px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform .15s ease, background .15s ease;
+  }
+
+  .replay-btn:hover {
+    background: #f4f4f4;
+  }
+
+  .replay-btn:active {
+    transform: scale(.97);
+  }
+
+  .cats {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 24px;
+  }
+
+  .cat-card {
+    min-height: 215px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .pose-name {
+    margin-top: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: .05em;
+  }
+
+  svg {
+    width: 100%;
+    max-width: 210px;
+    height: auto;
+    overflow: visible;
+  }
+
+  .draw {
+    fill: none;
+    stroke: #111;
+    stroke-width: 3.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawLine 4s ease forwards;
+    animation-delay: var(--delay);
+  }
+
+  .detail {
+    stroke-width: 2.6;
+  }
+
+  @keyframes drawLine {
+    to { stroke-dashoffset: 0; }
+  }
+
+  @media (max-width: 900px) {
+    .cats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 620px) {
+    .cats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+    .cat-card { min-height: 165px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>慢慢畫出來的 12 隻貓</h1>
+
+  <div class="controls">
+    <button class="replay-btn" id="replayBtn" type="button">重來</button>
+  </div>
+
+  <div class="cats">
+    <!-- 1. 坐著 -->
+    <div class="cat-card" style="--delay:0.0s">
+      <svg viewBox="0 0 200 180" aria-label="坐著的貓">
+        <path class="draw" d="M73 62 Q60 40 72 25 L88 40 Q100 33 112 40 L130 24 Q140 42 129 63 Q137 75 133 92 Q130 106 118 113 Q128 125 130 153 Q111 165 86 160 Q67 158 61 145 Q57 131 67 111 Q56 100 58 83 Q59 70 73 62 Z"/>
+        <path class="draw detail" d="M80 72 Q86 78 92 72 M110 72 Q116 78 122 72 M101 81 l-4 4 4 4 4-4z M82 91 Q101 102 120 91"/>
+        <path class="draw detail" d="M82 114 Q76 137 85 156 M118 114 Q124 137 116 158 M130 127 Q151 130 150 146 Q149 160 136 158"/>
+      </svg>
+      <div class="pose-name">坐著</div>
+    </div>
+
+    <!-- 2. 趴著 -->
+    <div class="cat-card" style="--delay:0.6s">
+      <svg viewBox="0 0 200 180" aria-label="趴著的貓">
+        <path class="draw" d="M58 92 Q58 70 74 58 L70 38 L86 50 Q99 44 112 49 L128 37 L126 60 Q140 70 140 88 Q139 105 125 112 Q144 117 151 128 Q158 142 143 148 L65 148 Q46 146 47 132 Q48 117 68 112 Q58 103 58 92 Z"/>
+        <path class="draw detail" d="M79 79 q6 6 12 0 M108 79 q6 6 12 0 M99 88 l-4 4 4 4 4-4z M84 100 Q99 107 114 100"/>
+        <path class="draw detail" d="M66 128 Q89 135 109 129 M110 129 Q132 136 146 130"/>
+      </svg>
+      <div class="pose-name">趴著</div>
+    </div>
+
+    <!-- 3. 躺著 -->
+    <div class="cat-card" style="--delay:1.2s">
+      <svg viewBox="0 0 200 180" aria-label="躺著的貓">
+        <path class="draw" d="M42 105 Q53 76 86 75 Q99 74 112 82 Q124 68 140 72 Q158 77 164 94 Q168 111 157 124 Q146 137 124 136 L82 136 Q56 136 44 123 Q37 116 42 105 Z"/>
+        <path class="draw detail" d="M130 77 l7-15 10 14 13-7-2 17 M137 97 q5 5 10 0 M151 98 q5 5 9 0 M148 106 l-3 3 3 3 3-3z"/>
+        <path class="draw detail" d="M75 86 Q92 96 95 118 M64 129 Q77 112 92 118 M112 84 Q110 106 119 133 M46 107 Q29 103 30 119 Q32 131 45 128"/>
+      </svg>
+      <div class="pose-name">躺著</div>
+    </div>
+
+    <!-- 4. 伸懶腰 -->
+    <div class="cat-card" style="--delay:1.8s">
+      <svg viewBox="0 0 200 180" aria-label="伸懶腰的貓">
+        <path class="draw" d="M49 66 Q72 50 104 56 Q128 59 143 77 Q153 90 154 109 Q155 121 145 129 Q133 137 122 129 Q113 122 116 111 Q118 101 128 97 Q114 88 96 87 Q75 87 61 96 Q51 102 40 98 Q28 94 29 82 Q30 71 39 67 Q44 65 49 66 Z"/>
+        <path class="draw detail" d="M35 75 l-8-14 15 6 8-12 4 18 M36 84 q4 5 9 0 M50 83 q4 5 9 0 M47 90 l-3 3 3 3 3-3z"/>
+        <path class="draw detail" d="M60 96 Q55 120 43 146 M72 94 Q70 122 66 148 M128 97 Q143 87 160 92 Q174 98 169 110"/>
+      </svg>
+      <div class="pose-name">伸懶腰</div>
+    </div>
+
+    <!-- 5. 走路 -->
+    <div class="cat-card" style="--delay:2.4s">
+      <svg viewBox="0 0 200 180" aria-label="走路的貓">
+        <path class="draw" d="M53 86 Q73 65 111 68 Q132 69 145 83 Q153 91 155 103 Q156 116 145 121 Q133 126 126 117 Q121 110 126 102 Q114 95 96 95 Q76 95 62 104 Q55 109 46 106 Q36 103 34 94 Q32 86 39 80 Q45 75 53 86 Z"/>
+        <path class="draw detail" d="M39 79 l-6-14 12 6 8-11 3 17 M38 90 q4 4 8 0 M52 90 q4 4 8 0 M49 96 l-3 3 3 3 3-3z"/>
+        <path class="draw detail" d="M69 101 Q68 122 61 142 M86 98 Q89 119 99 140 M112 97 Q108 117 109 139 M136 120 Q144 135 157 142"/>
+      </svg>
+      <div class="pose-name">走路</div>
+    </div>
+
+    <!-- 6. 跑步 -->
+    <div class="cat-card" style="--delay:3.0s">
+      <svg viewBox="0 0 200 180" aria-label="跑步的貓">
+        <path class="draw" d="M42 92 Q63 67 101 70 Q124 72 137 85 Q145 93 146 103 Q147 115 138 122 Q127 130 117 124 Q108 118 111 108 Q113 102 120 98 Q103 91 84 94 Q62 96 51 109 Q44 118 35 114 Q25 110 27 100 Q29 93 42 92 Z"/>
+        <path class="draw detail" d="M34 91 l-9-12 14 3 5-14 6 16 M33 99 q4 4 8 0 M46 100 q4 4 8 0"/>
+        <path class="draw detail" d="M69 102 Q55 119 38 127 M83 98 Q79 117 68 133 M105 97 Q118 112 137 116 M120 96 Q140 91 155 100 Q166 109 159 119"/>
+      </svg>
+      <div class="pose-name">跑步</div>
+    </div>
+
+    <!-- 7. 玩毛線 -->
+    <div class="cat-card" style="--delay:3.6s">
+      <svg viewBox="0 0 200 180" aria-label="玩毛線的貓">
+        <path class="draw" d="M62 69 Q57 50 68 36 L82 49 Q95 43 108 48 L123 35 Q132 52 125 69 Q135 80 133 97 Q131 117 112 124 Q88 132 69 120 Q55 111 54 95 Q53 80 62 69 Z"/>
+        <path class="draw detail" d="M74 78 q5 5 10 0 M105 78 q5 5 10 0 M94 87 l-4 4 4 4 4-4z"/>
+        <path class="draw detail" d="M71 115 Q60 128 55 143 M116 118 Q126 126 135 136 M130 135 Q149 129 158 141 Q166 152 154 159 Q142 165 133 155 Q126 147 130 135 Z"/>
+        <path class="draw detail" d="M136 141 q14 7 18 16 M141 137 q10 1 19 9"/>
+      </svg>
+      <div class="pose-name">玩毛線</div>
+    </div>
+
+    <!-- 8. 抬手 -->
+    <div class="cat-card" style="--delay:4.2s">
+      <svg viewBox="0 0 200 180" aria-label="抬手的貓">
+        <path class="draw" d="M71 61 Q64 42 74 28 L90 42 Q102 37 114 43 L130 28 Q137 45 130 63 Q140 75 137 92 Q134 112 118 120 Q103 127 86 121 Q69 115 63 100 Q57 84 71 61 Z"/>
+        <path class="draw detail" d="M79 72 q5 5 10 0 M108 72 q5 5 10 0 M99 82 l-4 4 4 4 4-4z"/>
+        <path class="draw detail" d="M81 116 Q74 136 81 156 M117 118 Q125 139 120 157 M72 109 Q55 97 48 76 Q44 64 53 60 Q62 56 67 67"/>
+        <path class="draw detail" d="M48 76 q-9 -5 -8 -13 M49 76 q-1 10 -10 14"/>
+      </svg>
+      <div class="pose-name">抬手</div>
+    </div>
+
+    <!-- 9. 翹尾巴 -->
+    <div class="cat-card" style="--delay:4.8s">
+      <svg viewBox="0 0 200 180" aria-label="翹尾巴的貓">
+        <path class="draw" d="M54 88 Q74 66 108 69 Q130 71 140 87 Q148 100 145 115 Q142 129 129 133 Q114 137 105 128 Q98 121 103 111 Q106 104 114 101 Q96 94 78 98 Q63 101 53 111 Q44 120 35 114 Q25 107 29 96 Q34 84 54 88 Z"/>
+        <path class="draw detail" d="M37 87 l-8-14 14 5 7-13 4 17 M38 96 q4 4 8 0 M51 96 q4 4 8 0"/>
+        <path class="draw detail" d="M137 86 Q154 69 153 48 Q152 30 164 24 Q178 17 185 31 Q191 43 181 51 Q172 58 164 49"/>
+        <path class="draw detail" d="M70 102 Q66 127 59 148 M111 105 Q117 129 116 151"/>
+      </svg>
+      <div class="pose-name">翹尾巴</div>
+    </div>
+
+    <!-- 10. 睡覺 -->
+    <div class="cat-card" style="--delay:5.4s">
+      <svg viewBox="0 0 200 180" aria-label="睡覺的貓">
+        <path class="draw" d="M46 112 Q50 83 78 73 Q94 67 109 74 Q122 63 139 70 Q158 77 163 95 Q168 114 155 128 Q142 142 116 141 L76 141 Q52 139 46 126 Q43 120 46 112 Z"/>
+        <path class="draw detail" d="M128 77 l5-14 10 11 12-6-2 15 M132 99 q6 7 12 0 M147 100 q5 6 10 0 M145 109 l-3 3 3 3 3-3z"/>
+        <path class="draw detail" d="M77 81 Q91 94 92 118 Q78 106 63 114 Q52 120 51 131 M91 118 Q110 110 126 122 Q134 128 139 139"/>
+        <path class="draw detail" d="M147 54 l10-10 h-10 l10-10 M160 70 l8-8 h-8 l8-8"/>
+      </svg>
+      <div class="pose-name">睡覺</div>
+    </div>
+
+    <!-- 11. 洗臉 -->
+    <div class="cat-card" style="--delay:6.0s">
+      <svg viewBox="0 0 200 180" aria-label="洗臉的貓">
+        <path class="draw" d="M69 62 Q62 43 73 28 L88 42 Q101 36 114 42 L130 27 Q138 45 130 63 Q141 76 138 94 Q134 113 119 122 Q101 132 84 123 Q68 115 62 100 Q56 82 69 62 Z"/>
+        <path class="draw detail" d="M79 74 q5 5 10 0 M108 74 q5 5 10 0 M99 84 l-4 4 4 4 4-4z"/>
+        <path class="draw detail" d="M78 116 Q72 139 80 158 M118 117 Q126 138 121 158"/>
+        <path class="draw detail" d="M70 104 Q51 95 49 78 Q48 66 57 62 Q65 59 70 69 Q74 77 68 86"/>
+        <path class="draw detail" d="M67 86 Q76 80 82 88 Q88 97 80 105"/>
+      </svg>
+      <div class="pose-name">洗臉</div>
+    </div>
+
+    <!-- 12. 翻肚 -->
+    <div class="cat-card" style="--delay:6.6s">
+      <svg viewBox="0 0 200 180" aria-label="翻肚的貓">
+        <path class="draw" d="M48 111 Q50 83 77 72 Q94 65 110 74 Q124 66 140 72 Q158 81 161 99 Q164 117 151 130 Q138 143 113 141 L78 141 Q55 140 48 127 Q44 120 48 111 Z"/>
+        <path class="draw detail" d="M129 78 l5-14 10 12 12-6-2 16 M132 99 q5 5 10 0 M148 100 q5 5 10 0 M145 108 l-3 3 3 3 3-3z"/>
+        <path class="draw detail" d="M76 82 Q87 96 90 117 M110 78 Q103 96 107 119"/>
+        <path class="draw detail" d="M88 119 Q76 105 64 111 Q52 117 54 128 M108 119 Q121 105 134 113 Q145 120 142 132"/>
+        <path class="draw detail" d="M63 78 Q52 66 43 72 Q35 79 42 89 M143 75 Q155 63 164 71 Q173 79 166 89"/>
+      </svg>
+      <div class="pose-name">翻肚</div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function prepareDrawing() {
+    document.querySelectorAll('.draw').forEach(el => {
+      const length = Math.ceil(el.getTotalLength ? el.getTotalLength() : 1000);
+      el.style.strokeDasharray = length;
+      el.style.strokeDashoffset = length;
+    });
+  }
+
+  function replayDrawing() {
+    const lines = document.querySelectorAll('.draw');
+
+    lines.forEach(el => {
+      el.style.animation = 'none';
+      el.style.strokeDashoffset = el.style.strokeDasharray;
+    });
+
+    void document.body.offsetWidth;
+
+    lines.forEach(el => {
+      el.style.animation = 'drawLine 4s ease forwards';
+      el.style.animationDelay = 'var(--delay)';
+    });
+  }
+
+  // DOM 建好後立刻先準備線條，再讓 CSS 動畫播放。
+  document.addEventListener('DOMContentLoaded', () => {
+    prepareDrawing();
+    document.getElementById('replayBtn').addEventListener('click', replayDrawing);
+  });
+</script>
+</body>
+</html>
