@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>線上小畫家 Web Paint Pro</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #1e1e24;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 頂部工具列 */
+        header {
+            background-color: #2b2b36;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #3d3d4e;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #4dabf7;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background-color: #202029;
+            padding: 4px 8px;
+            border-radius: 8px;
+            border: 1px solid #383848;
+        }
+
+        .tool-group-title {
+            font-size: 0.75rem;
+            color: #8a8a9e;
+            margin-right: 4px;
+            text-transform: uppercase;
+        }
+
+        button, label.btn-label {
+            background-color: #323242;
+            color: #e0e0e0;
+            border: 1px solid #45455a;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        button:hover, label.btn-label:hover {
+            background-color: #3e3e52;
+            border-color: #5c5c7a;
+            color: #fff;
+        }
+
+        button:active, label.btn-label:active {
+            transform: scale(0.96);
+        }
+
+        button.active {
+            background-color: #3b5bdb;
+            border-color: #4c6ef5;
+            color: #fff;
+            box-shadow: 0 0 8px rgba(59, 91, 219, 0.5);
+        }
+
+        button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 顏色選擇器 */
+        input[type="color"] {
+            -webkit-appearance: none;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            background: none;
+        }
+
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+
+        input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
+
+        .btn-rainbow {
+            background: linear-gradient(135deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
+            background-size: 200% 200%;
+            animation: rainbowGlow 3s ease infinite;
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            border: none;
+        }
+
+        @keyframes rainbowGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* 下拉選單與滑桿 */
+        select {
+            background-color: #323242;
+            color: #e0e0e0;
+            border: 1px solid #45455a;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        select:hover {
+            border-color: #5c5c7a;
+        }
+
+        .size-slider-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        input[type="range"] {
+            accent-color: #4dabf7;
+            cursor: pointer;
+            width: 80px;
+        }
+
+        .size-val {
+            font-size: 0.8rem;
+            min-width: 24px;
+            text-align: right;
+            color: #aaa;
+        }
+
+        /* 主工作區域 */
+        main {
+            flex: 1;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #121215;
+            background-image: 
+                radial-gradient(#282833 1px, transparent 1px);
+            background-size: 20px 20px;
+            overflow: hidden;
+            padding: 20px;
+        }
+
+        /* Canvas 包裹容器 (用於保持比例與陰影) */
+        .canvas-container {
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border-radius: 4px;
+            overflow: hidden;
+            background-color: #ffffff;
+        }
+
+        canvas {
+            display: block;
+            cursor: crosshair;
+        }
+
+        /* 線圖透明圖層 (置於畫布上方，穿透點擊) */
+        .svg-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.35;
+            z-index: 2;
+        }
+
+        /* 檔案上傳隱藏 input */
+        #fileInput {
+            display: none;
+        }
+
+        /* Toast 提示通知 */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(43, 43, 54, 0.9);
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 8px;
+            border-left: 4px solid #4dabf7;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            font-size: 0.88rem;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            🎨 <span>WebPaint Pro</span>
+        </div>
+
+        <div class="toolbar">
+            <!-- 筆觸模式 -->
+            <div class="tool-group">
+                <span class="tool-group-title">工具</span>
+                <button id="btnBrush" class="active" title="一般畫筆">✏️ 畫筆</button>
+                <button id="btnEraser" title="橡皮擦">🧹 橡皮擦</button>
+                <button id="btnRainbow" class="btn-rainbow" title="彩虹畫筆">🌈 彩虹筆</button>
+            </div>
+
+            <!-- 顏色與粗細 -->
+            <div class="tool-group">
+                <span class="tool-group-title">樣式</span>
+                <input type="color" id="colorPicker" value="#000000" title="選擇顏色">
+                <div class="size-slider-container">
+                    <input type="range" id="brushSize" min="1" max="50" value="5">
+                    <span id="sizeVal" class="size-val">5px</span>
+                </div>
+            </div>
+
+            <!-- 歷史紀錄 -->
+            <div class="tool-group">
+                <button id="btnUndo" disabled title="復原 (Ctrl+Z)">↩️ 復原</button>
+                <button id="btnRedo" disabled title="重做 (Ctrl+Y)">↪️ 重做</button>
+                <button id="btnClear" title="清空畫布">🗑️ 清空</button>
+            </div>
+
+            <!-- 線圖選擇 -->
+            <div class="tool-group">
+                <span class="tool-group-title">描摹底圖</span>
+                <select id="templateSelect">
+                    <option value="none">無底圖</option>
+                    <option value="star">⭐️ 五角星</option>
+                    <option value="house">🏠 溫馨小屋</option>
+                    <option value="cat">🐱 可愛小貓</option>
+                    <option value="car">🚗 小汽車</option>
+                    <option value="flower">🌸 太陽花</option>
+                    <option value="tree">🌲 大樹</option>
+                    <option value="apple">🍎 蘋果</option>
+                    <option value="fish">🐟 熱帶魚</option>
+                    <option value="heart">❤️ 愛心</option>
+                    <option value="rocket">🚀 火箭</option>
+                </select>
+            </div>
+
+            <!-- 匯入與下載 -->
+            <div class="tool-group">
+                <label for="fileInput" class="btn-label" title="開啟/匯入本地圖片">📂 載入圖片</label>
+                <input type="file" id="fileInput" accept="image/*">
+                <button id="btnDownload" class="active" title="下載畫作 PNG">💾 下載圖片</button>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="canvas-container" id="canvasContainer">
+            <canvas id="paintCanvas" width="900" height="600"></canvas>
+            <div id="svgOverlay" class="svg-overlay"></div>
+        </div>
+    </main>
+
+    <div id="toast" class="toast">訊息提示</div>
+
+    <script>
+        // --- 10 種精簡內嵌 SVG 描摹線圖定義 ---
+        const SVG_TEMPLATES = {
+            none: '',
+            star: `<svg viewBox="0 0 100 100" width="100%" height="100%"><polygon points="50,10 64,38 95,42 72,64 78,95 50,79 22,95 28,64 5,42 36,38" fill="none" stroke="#333" stroke-width="2" stroke-linejoin="round"/></svg>`,
+            house: `<svg viewBox="0 0 100 100" width="100%" height="100%"><polygon points="50,15 15,45 85,45" fill="none" stroke="#333" stroke-width="2"/><rect x="25" y="45" width="50" height="40" fill="none" stroke="#333" stroke-width="2"/><rect x="42" y="60" width="16" height="25" fill="none" stroke="#333" stroke-width="2"/><rect x="30" y="52" width="12" height="12" fill="none" stroke="#333" stroke-width="2"/><rect x="58" y="52" width="12" height="12" fill="none" stroke="#333" stroke-width="2"/></svg>`,
+            cat: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="55" r="30" fill="none" stroke="#333" stroke-width="2"/><polygon points="25,35 20,10 40,28" fill="none" stroke="#333" stroke-width="2"/><polygon points="75,35 80,10 60,28" fill="none" stroke="#333" stroke-width="2"/><circle cx="40" cy="50" r="3" fill="#333"/><circle cx="60" cy="50" r="3" fill="#333"/><polygon points="50,57 46,62 54,62" fill="#333"/><path d="M 40 68 Q 50 75 60 68" fill="none" stroke="#333" stroke-width="2"/><line x1="15" y1="52" x2="32" y2="55" stroke="#333" stroke-width="1.5"/><line x1="15" y1="60" x2="32" y2="60" stroke="#333" stroke-width="1.5"/><line x1="85" y1="52" x2="68" y2="55" stroke="#333" stroke-width="1.5"/><line x1="85" y1="60" x2="68" y2="60" stroke="#333" stroke-width="1.5"/></svg>`,
+            car: `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M 15 55 L 25 35 L 65 35 L 80 55 L 90 55 L 90 70 L 10 70 L 10 55 Z" fill="none" stroke="#333" stroke-width="2"/><circle cx="30" cy="70" r="10" fill="none" stroke="#333" stroke-width="2"/><circle cx="70" cy="70" r="10" fill="none" stroke="#333" stroke-width="2"/><rect x="30" y="40" width="18" height="12" fill="none" stroke="#333" stroke-width="1.5"/><rect x="52" y="40" width="18" height="12" fill="none" stroke="#333" stroke-width="1.5"/></svg>`,
+            flower: `<svg viewBox="0 0 100 100" width="100%" height="100%"><circle cx="50" cy="40" r="12" fill="none" stroke="#333" stroke-width="2"/><circle cx="50" cy="20" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="50" cy="60" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="30" cy="40" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="70" cy="40" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="36" cy="26" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="64" cy="26" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="36" cy="54" r="8" fill="none" stroke="#333" stroke-width="1.5"/><circle cx="64" cy="54" r="8" fill="none" stroke="#333" stroke-width="1.5"/><line x1="50" y1="52" x2="50" y2="90" stroke="#333" stroke-width="2"/><path d="M 50 75 Q 30 65 25 75 Q 35 85 50 78" fill="none" stroke="#333" stroke-width="1.5"/></svg>`,
+            tree: `<svg viewBox="0 0 100 100" width="100%" height="100%"><rect x="43" y="60" width="14" height="30" fill="none" stroke="#333" stroke-width="2"/><path d="M 50 10 C 20 15 15 45 30 50 C 15 60 30 70 50 65 C 70 70 85 60 70 50 C 85 45 80 15 50 10 Z" fill="none" stroke="#333" stroke-width="2"/></svg>`,
+            apple: `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M 50 30 C 30 15 10 35 20 65 C 28 88 45 85 50 78 C 55 85 72 88 80 65 C 90 35 70 15 50 30 Z" fill="none" stroke="#333" stroke-width="2"/><path d="M 50 30 Q 55 18 60 12" fill="none" stroke="#333" stroke-width="2"/><path d="M 54 20 Q 70 15 65 25 Q 56 25 54 20 Z" fill="none" stroke="#333" stroke-width="1.5"/></svg>`,
+            fish: `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M 20 50 C 35 20 70 25 85 50 C 70 75 35 80 20 50 Z" fill="none" stroke="#333" stroke-width="2"/><polygon points="20,50 5,30 5,70" fill="none" stroke="#333" stroke-width="2"/><circle cx="70" cy="42" r="3" fill="#333"/><path d="M 45 31 Q 50 50 45 69" fill="none" stroke="#333" stroke-width="1.5"/></svg>`,
+            heart: `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M 50 30 C 50 30 35 10 20 25 C 5 40 25 65 50 85 C 75 65 95 40 80 25 C 65 10 50 30 50 30 Z" fill="none" stroke="#333" stroke-width="2"/></svg>`,
+            rocket: `<svg viewBox="0 0 100 100" width="100%" height="100%"><path d="M 50 15 C 35 30 35 60 35 70 L 65 70 C 65 60 65 30 50 15 Z" fill="none" stroke="#333" stroke-width="2"/><polygon points="35,50 20,70 35,65" fill="none" stroke="#333" stroke-width="2"/><polygon points="65,50 80,70 65,65" fill="none" stroke="#333" stroke-width="2"/><circle cx="50" cy="40" r="7" fill="none" stroke="#333" stroke-width="2"/><path d="M 40 70 L 40 82 L 50 76 L 60 82 L 60 70" fill="none" stroke="#333" stroke-width="1.5"/></svg>`
+        };
+
+        // --- 全域狀態 ---
+        const canvas = document.getElementById('paintCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        let isDrawing = false;
+        let lastX = 0;
+        let lastY = 0;
+        let currentMode = 'brush'; // 'brush', 'eraser', 'rainbow'
+        let currentColor = '#000000';
+        let currentSize = 5;
+        let hue = 0; // 用於彩虹筆模式
+
+        // Undo / Redo 歷史棧 (最多記錄 20 步)
+        const MAX_HISTORY = 20;
+        let historyStack = [];
+        let historyIndex = -1;
+
+        // --- 初始化 UI 元件 ---
+        const btnBrush = document.getElementById('btnBrush');
+        const btnEraser = document.getElementById('btnEraser');
+        const btnRainbow = document.getElementById('btnRainbow');
+        const colorPicker = document.getElementById('colorPicker');
+        const brushSize = document.getElementById('brushSize');
+        const sizeVal = document.getElementById('sizeVal');
+        const btnUndo = document.getElementById('btnUndo');
+        const btnRedo = document.getElementById('btnRedo');
+        const btnClear = document.getElementById('btnClear');
+        const templateSelect = document.getElementById('templateSelect');
+        const svgOverlay = document.getElementById('svgOverlay');
+        const fileInput = document.getElementById('fileInput');
+        const btnDownload = document.getElementById('btnDownload');
+        const toast = document.getElementById('toast');
+
+        // --- 初始化 Canvas 底色 ---
+        function initCanvas() {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            // 載入 localStorage 自動儲存的草稿 (若有)
+            const savedDraft = localStorage.getItem('webpaint_draft');
+            if (savedDraft) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.drawImage(img, 0, 0);
+                    saveState(); // 存入歷史的第一步
+                };
+                img.src = savedDraft;
+                showToast('已為您自動還原上次的繪圖草稿');
+            } else {
+                saveState(); // 存入初始空白畫布
+            }
+        }
+
+        // --- 歷史紀錄 (Undo / Redo) 管理 ---
+        function saveState() {
+            // 如果當前不在歷史最後一步，切斷後續 redo
+            if (historyIndex < historyStack.length - 1) {
+                historyStack = historyStack.slice(0, historyIndex + 1);
+            }
+            
+            // 紀錄當前畫面 Snapshot
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            historyStack.push(imageData);
+
+            if (historyStack.length > MAX_HISTORY) {
+                historyStack.shift();
+            } else {
+                historyIndex++;
+            }
+
+            updateUndoRedoButtons();
+            autoSaveToLocalStorage();
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                ctx.putImageData(historyStack[historyIndex], 0, 0);
+                updateUndoRedoButtons();
+                autoSaveToLocalStorage();
+                showToast('已復原上一步');
+            }
+        }
+
+        function redo() {
+            if (historyIndex < historyStack.length - 1) {
+                historyIndex++;
+                ctx.putImageData(historyStack[historyIndex], 0, 0);
+                updateUndoRedoButtons();
+                autoSaveToLocalStorage();
+                showToast('已重做');
+            }
+        }
+
+        function updateUndoRedoButtons() {
+            btnUndo.disabled = (historyIndex <= 0);
+            btnRedo.disabled = (historyIndex >= historyStack.length - 1);
+        }
+
+        function autoSaveToLocalStorage() {
+            try {
+                localStorage.setItem('webpaint_draft', canvas.toDataURL());
+            } catch (e) {
+                // 忽略可能的 storage quota 錯誤
+            }
+        }
+
+        // --- 繪圖核心邏輯 ---
+        function getCanvasCoordinates(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+
+            // 支援 Touch 事件
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * scaleX,
+                y: (clientY - rect.top) * scaleY
+            };
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            const pos = getCanvasCoordinates(e);
+            lastX = pos.x;
+            lastY = pos.y;
+
+            // 點擊單點時亦可畫出一點
+            draw(e);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            e.preventDefault();
+
+            const pos = getCanvasCoordinates(e);
+
+            ctx.beginPath();
+            ctx.moveTo(lastX, lastY);
+            ctx.lineTo(pos.x, pos.y);
+
+            ctx.lineWidth = currentSize;
+
+            if (currentMode === 'eraser') {
+                ctx.strokeStyle = '#ffffff';
+            } else if (currentMode === 'rainbow') {
+                ctx.strokeStyle = `hsl(${hue}, 100%, 50%)`;
+                hue = (hue + 3) % 360; // 邊畫邊滑順切換色相
+            } else {
+                ctx.strokeStyle = currentColor;
+            }
+
+            ctx.stroke();
+
+            lastX = pos.x;
+            lastY = pos.y;
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                saveState(); // 每次畫完筆劃存入歷史 Stack
+            }
+        }
+
+        // --- 工具切換 ---
+        function setMode(mode) {
+            currentMode = mode;
+            btnBrush.classList.toggle('active', mode === 'brush');
+            btnEraser.classList.toggle('active', mode === 'eraser');
+            btnRainbow.classList.toggle('active', mode === 'rainbow');
+        }
+
+        btnBrush.addEventListener('click', () => setMode('brush'));
+        btnEraser.addEventListener('click', () => setMode('eraser'));
+        btnRainbow.addEventListener('click', () => setMode('rainbow'));
+
+        colorPicker.addEventListener('input', (e) => {
+            currentColor = e.target.value;
+            setMode('brush'); // 選顏色時自動切回一般畫筆
+        });
+
+        brushSize.addEventListener('input', (e) => {
+            currentSize = e.target.value;
+            sizeVal.textContent = `${currentSize}px`;
+        });
+
+        // --- 按鈕事件繫結 ---
+        btnUndo.addEventListener('click', undo);
+        btnRedo.addEventListener('click', redo);
+
+        btnClear.addEventListener('click', () => {
+            if (confirm('確定要清空畫布嗎？')) {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                saveState();
+                showToast('畫布已清空');
+            }
+        });
+
+        // --- 線圖切換 ---
+        templateSelect.addEventListener('change', (e) => {
+            const templateKey = e.target.value;
+            svgOverlay.innerHTML = SVG_TEMPLATES[templateKey] || '';
+            if (templateKey !== 'none') {
+                showToast(`已載入描摹底圖：${e.target.options[e.target.selectedIndex].text}`);
+            }
+        });
+
+        // --- 載入 / 貼上圖片處理 ---
+        function handleImageFile(file) {
+            if (!file || !file.type.startsWith('image/')) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    // 計算縮放以配合畫布 (Contain 模式)
+                    const hRatio = canvas.width / img.width;
+                    const vRatio = canvas.height / img.height;
+                    const ratio = Math.min(hRatio, vRatio, 1); // 不放超過原圖
+                    const centerShiftX = (canvas.width - img.width * ratio) / 2;
+                    const centerShiftY = (canvas.height - img.height * ratio) / 2;
+
+                    ctx.drawImage(img, 0, 0, img.width, img.height,
+                        centerShiftX, centerShiftY, img.width * ratio, img.height * ratio);
+                    saveState();
+                    showToast('圖片已載入至畫布');
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleImageFile(e.target.files[0]);
+                e.target.value = ''; // 清空選擇器以利重複上傳
+            }
+        });
+
+        // 剪貼簿貼上 (Ctrl + V)
+        window.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    const blob = item.getAsFile();
+                    handleImageFile(blob);
+                    showToast('已貼上剪貼簿圖片');
+                    break;
+                }
+            }
+        });
+
+        // --- 下載圖檔 ---
+        btnDownload.addEventListener('click', () => {
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().slice(0,10);
+            link.download = `paint-${timestamp}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            showToast('畫作已成功下載 PNG！');
+        });
+
+        // --- 鍵盤快捷鍵 ---
+        window.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                if (e.shiftKey) {
+                    redo();
+                } else {
+                    undo();
+                }
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+                redo();
+            }
+        });
+
+        // --- Canvas 事件監聽 (Mouse & Touch) ---
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        // --- Toast 提示工具 ---
+        let toastTimer = null;
+        function showToast(msg) {
+            toast.textContent = msg;
+            toast.classList.add('show');
+            clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        // 初始化執行
+        initCanvas();
+    </script>
+</body>
+</html>
