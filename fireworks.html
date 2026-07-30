@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>線上放煙火 Fireworks</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #000;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    canvas {
+      display: block;
+      cursor: pointer;
+    }
+    #ui-container {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      color: rgba(255, 255, 255, 0.8);
+      pointer-events: none;
+      user-select: none;
+    }
+    h1 {
+      font-size: 1.2rem;
+      font-weight: 400;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    p {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
+    #controls {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      display: flex;
+      gap: 10px;
+    }
+    .btn {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(5px);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .btn.active {
+      background: rgba(255, 255, 255, 0.4);
+      border-color: #fff;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="ui-container">
+    <h1>🎆 線上煙火</h1>
+    <p>點擊畫面任意處施放煙火</p>
+  </div>
+
+  <div id="controls">
+    <button id="toggle-sound" class="btn active">🔊 音效: 開</button>
+    <button id="toggle-auto" class="btn active">✨ 自動發射: 開</button>
+  </div>
+
+  <canvas id="canvas"></canvas>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI 控制狀態
+    let soundEnabled = true;
+    let autoLaunchEnabled = true;
+
+    // Web Audio API
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // 播放發射音效（上升低音）
+    function playLaunchSound() {
+      if (!soundEnabled || !audioCtx) return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.3);
+
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    // 播放爆炸音效（白噪音 + 低音）
+    function playExplodeSound() {
+      if (!soundEnabled || !audioCtx) return;
+
+      // 1. 低音轟鳴
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.4);
+
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.4);
+
+      // 2. 破裂白噪音
+      const bufferSize = audioCtx.sampleRate * 0.3;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = audioCtx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+      filter.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+
+      const noiseGain = audioCtx.createGain();
+      noiseGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+
+      noise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(audioCtx.destination);
+
+      noise.start();
+    }
+
+    // 調整 Canvas 尺寸
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    // 實體陣列
+    const rockets = [];
+    const particles = [];
+
+    // 顏色模式選擇器
+    function getRandomColorPattern() {
+      const type = Math.floor(Math.random() * 4);
+      if (type === 0) {
+        // 多彩 Rainbow
+        return { type: 'rainbow' };
+      } else if (type === 1) {
+        // 單一隨機色
+        const hue = Math.floor(Math.random() * 360);
+        return { type: 'single', hue };
+      } else if (type === 2) {
+        // 雙色/漸層色
+        const hue1 = Math.floor(Math.random() * 360);
+        const hue2 = (hue1 + 60 + Math.floor(Math.random() * 120)) % 360;
+        return { type: 'dual', hue1, hue2 };
+      } else {
+        // 金燦光華
+        return { type: 'gold' };
+      }
+    }
+
+    // 火箭類別（升空）
+    class Rocket {
+      constructor(targetX, targetY) {
+        this.x = canvas.width / 2 + (Math.random() * 200 - 100);
+        this.y = canvas.height;
+        this.targetX = targetX;
+        this.targetY = targetY;
+        
+        const dx = targetX - this.x;
+        const dy = targetY - this.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const speed = 12 + Math.random() * 3;
+
+        this.vx = (dx / distance) * speed;
+        this.vy = (dy / distance) * speed;
+        this.trail = [];
+      }
+
+      update() {
+        this.trail.push({ x: this.x, y: this.y });
+        if (this.trail.length > 5) this.trail.shift();
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // 到達目標高度附近即爆炸
+        if (this.vy < 0 && this.y <= this.targetY) {
+          createFirework(this.targetX, this.targetY);
+          playExplodeSound();
+          return false;
+        }
+        return true;
+      }
+
+      draw() {
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(255, 220, 150, 0.8)';
+        ctx.lineWidth = 2;
+        if (this.trail.length > 0) {
+          ctx.moveTo(this.trail[0].x, this.trail[0].y);
+          ctx.lineTo(this.x, this.y);
+        }
+        ctx.stroke();
+      }
+    }
+
+    // 粒子類別（爆炸）
+    class Particle {
+      constructor(x, y, color, vx, vy) {
+        this.x = x;
+        this.y = y;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+        this.alpha = 1;
+        this.decay = 0.012 + Math.random() * 0.015;
+        this.gravity = 0.06;
+        this.friction = 0.96;
+      }
+
+      update() {
+        this.vx *= this.friction;
+        this.vy *= this.friction;
+        this.vy += this.gravity;
+        this.x += this.vx;
+        this.y += this.vy;
+        this.alpha -= this.decay;
+        return this.alpha > 0;
+      }
+
+      draw() {
+        ctx.save();
+        ctx.globalAlpha = this.alpha;
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.shadowBlur = 6;
+        ctx.shadowColor = this.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // 產生煙火形狀與粒子
+    function createFirework(x, y) {
+      const pattern = getRandomColorPattern();
+      const shapeType = Math.floor(Math.random() * 4); // 0: 圓形, 1: 愛心, 2: 環形, 3: 星形
+      const particleCount = 80 + Math.floor(Math.random() * 40);
+
+      const getColor = (i, total) => {
+        if (pattern.type === 'rainbow') {
+          return `hsl(${(i / total) * 360}, 100%, 60%)`;
+        } else if (pattern.type === 'single') {
+          return `hsl(${pattern.hue}, 100%, 60%)`;
+        } else if (pattern.type === 'dual') {
+          const h = Math.random() > 0.5 ? pattern.hue1 : pattern.hue2;
+          return `hsl(${h}, 100%, 60%)`;
+        } else {
+          return `hsl(${40 + Math.random() * 15}, 100%, ${60 + Math.random() * 30}%)`;
+        }
+      };
+
+      for (let i = 0; i < particleCount; i++) {
+        let vx = 0, vy = 0;
+        const color = getColor(i, particleCount);
+
+        if (shapeType === 0) {
+          // 圓形（經典爆破）
+          const angle = (Math.PI * 2 / particleCount) * i;
+          const speed = 2 + Math.random() * 6;
+          vx = Math.cos(angle) * speed;
+          vy = Math.sin(angle) * speed;
+
+        } else if (shapeType === 1) {
+          // 愛心形
+          const t = (Math.PI * 2 / particleCount) * i;
+          const speed = 0.35 + Math.random() * 0.05;
+          vx = 16 * Math.pow(Math.sin(t), 3) * speed;
+          vy = -(13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t)) * speed;
+
+        } else if (shapeType === 2) {
+          // 雙環形
+          const angle = (Math.PI * 2 / particleCount) * i;
+          const speed = (i % 2 === 0 ? 6 : 3) + (Math.random() - 0.5) * 0.5;
+          vx = Math.cos(angle) * speed;
+          vy = Math.sin(angle) * speed;
+
+        } else if (shapeType === 3) {
+          // 五角星形
+          const angle = (Math.PI * 2 / particleCount) * i;
+          const starFactor = 1 + 0.8 * Math.sin(angle * 5);
+          const speed = (2 + Math.random() * 2) * starFactor;
+          vx = Math.cos(angle) * speed;
+          vy = Math.sin(angle) * speed;
+        }
+
+        particles.push(new Particle(x, y, color, vx, vy));
+      }
+    }
+
+    // 發射煙火觸發器
+    function launchFirework(targetX, targetY) {
+      initAudio();
+      playLaunchSound();
+      rockets.push(new Rocket(targetX, targetY));
+    }
+
+    // 事件監聽：滑鼠與觸控
+    window.addEventListener('click', (e) => {
+      // 避開 UI 控制按鈕的點擊
+      if (e.target.tagName === 'BUTTON') return;
+      launchFirework(e.clientX, e.clientY);
+    });
+
+    window.addEventListener('touchstart', (e) => {
+      if (e.target.tagName === 'BUTTON') return;
+      const touch = e.touches[0];
+      launchFirework(touch.clientX, touch.clientY);
+    });
+
+    // 控制項事件綁定
+    const soundBtn = document.getElementById('toggle-sound');
+    const autoBtn = document.getElementById('toggle-auto');
+
+    soundBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      soundBtn.textContent = `🔊 音效: ${soundEnabled ? '開' : '關'}`;
+      soundBtn.classList.toggle('active', soundEnabled);
+      if (soundEnabled) initAudio();
+    });
+
+    autoBtn.addEventListener('click', () => {
+      autoLaunchEnabled = !autoLaunchEnabled;
+      autoBtn.textContent = `✨ 自動發射: ${autoLaunchEnabled ? '開' : '關'}`;
+      autoBtn.classList.toggle('active', autoLaunchEnabled);
+    });
+
+    // 計時器：閒置時自動發射
+    let lastAutoTime = 0;
+    function handleAutoLaunch(timestamp) {
+      if (!autoLaunchEnabled) return;
+      if (timestamp - lastAutoTime > 1200 + Math.random() * 800) {
+        const x = Math.random() * (canvas.width * 0.8) + canvas.width * 0.1;
+        const y = Math.random() * (canvas.height * 0.5) + canvas.height * 0.1;
+        launchFirework(x, y);
+        lastAutoTime = timestamp;
+      }
+    }
+
+    // 主動畫迴圈
+    function animate(timestamp) {
+      // 透明度淡出效果（畫布殘影）
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 自動施放處理
+      handleAutoLaunch(timestamp);
+
+      // 更新與繪製火箭
+      for (let i = rockets.length - 1; i >= 0; i--) {
+        if (!rockets[i].update()) {
+          rockets.splice(i, 1);
+        } else {
+          rockets[i].draw();
+        }
+      }
+
+      // 更新與繪製粒子
+      for (let i = particles.length - 1; i >= 0; i--) {
+        if (!particles[i].update()) {
+          particles.splice(i, 1);
+        } else {
+          particles[i].draw();
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    // 啟動動畫
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
